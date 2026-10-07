@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  color: #334155;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  background: white;
+  color: #0f172a;
+}
