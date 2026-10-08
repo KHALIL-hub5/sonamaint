@@ -28,6 +28,13 @@ npm run dev
 
 The public health check is available at `GET http://localhost:3000/api/health`. All other API routes are under `/api` and require authentication.
 
+## Photo attachments
+
+- `POST /api/interventions/:id/attachments` accepts 1–5 image files in the `files` multipart field and an optional JSON-array `captions` field. Only JPEG, PNG and WebP are accepted, and each file is limited to `MAX_UPLOAD_MB`.
+- `GET /api/attachments/:id/file` streams an uploaded image inline.
+
+Files are stored beneath `UPLOAD_DIR` using generated names; the original client filename is not used for storage.
+
 ## Verification
 
 ```sh
