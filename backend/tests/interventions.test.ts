@@ -192,6 +192,48 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
     expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('rejects oversized PC update values and external ticket references', async () => {
+    const pc = data.pcs[0];
+    const classId = referenceData.interventionClasses[0]?.id;
+    expect(pc).toBeDefined();
+    expect(classId).toBeDefined();
+    const invalidFields: Array<[string, string | number]> = [
+      ['model', 'M'.repeat(101)],
+      ['cpu', 'C'.repeat(101)],
+      ['gpu', 'G'.repeat(101)],
+      ['assignedUser', 'U'.repeat(101)],
+      ['osName', 'O'.repeat(51)],
+      ['osVersion', 'V'.repeat(51)],
+      ['ramGb', 4097],
+      ['storageGb', 100_001],
+    ];
+
+    for (const [field, value] of invalidFields) {
+      const response = await request(app())
+        .post('/api/interventions')
+        .send({
+          pcId: pc?.id,
+          classId,
+          problemDescription: 'Check request limits',
+          pcUpdates: { [field]: value },
+        });
+
+      expect(response.status, `pcUpdates.${field}`).toBe(400);
+      expect(response.body.error.code, `pcUpdates.${field}`).toBe('VALIDATION_ERROR');
+    }
+
+    const ticketResponse = await request(app())
+      .post('/api/interventions')
+      .send({
+        pcId: pc?.id,
+        classId,
+        problemDescription: 'Check ticket reference limit',
+        externalTicketRef: 'T'.repeat(101),
+      });
+    expect(ticketResponse.status).toBe(400);
+    expect(ticketResponse.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('filters PC interventions by class type and class id', async () => {
     const pc = data.pcs.find((item) => item.assetTag === 'PC-DZ-01142');
     const softwareClass = referenceData.interventionClasses.find(
@@ -478,6 +520,21 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
       caption: 'Equipment label',
       mime_type: 'image/png',
     }]);
+  });
+
+  it('rejects attachment captions longer than the database column', async () => {
+    const interventionId = await insertIntervention(
+      data.pcs[0]?.id ?? 0,
+      referenceData.interventionClasses[0]?.id ?? 0,
+      'Reject an oversized caption',
+    );
+    const response = await request(app())
+      .post(`/api/interventions/${interventionId}/attachments`)
+      .field('captions', JSON.stringify(['C'.repeat(201)]))
+      .attach('files', pngBytes, 'photo.png');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('rejects a non-image file even when it has a .jpg filename', async () => {

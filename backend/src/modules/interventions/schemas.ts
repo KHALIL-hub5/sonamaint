@@ -1,19 +1,20 @@
 import { z } from 'zod';
 
-const optionalText = z.string().trim().min(1).nullable().optional();
+const optionalText = (maxLength: number) =>
+  z.string().trim().min(1).max(maxLength).nullable().optional();
 
 const pcUpdatesSchema = z
   .object({
-    model: optionalText,
+    model: optionalText(100),
     officeId: z.coerce.number().int().positive().max(2_147_483_647).optional(),
-    assignedUser: optionalText,
-    cpu: z.string().trim().min(1).optional(),
-    gpu: optionalText,
-    ramGb: z.coerce.number().int().positive().optional(),
+    assignedUser: optionalText(100),
+    cpu: z.string().trim().min(1).max(100).optional(),
+    gpu: optionalText(100),
+    ramGb: z.coerce.number().int().positive().max(4096).optional(),
     storageType: z.enum(['SSD', 'HDD', 'NVMe']).optional(),
-    storageGb: z.coerce.number().int().positive().optional(),
-    osName: z.string().trim().min(1).optional(),
-    osVersion: optionalText,
+    storageGb: z.coerce.number().int().positive().max(100_000).optional(),
+    osName: z.string().trim().min(1).max(50).optional(),
+    osVersion: optionalText(50),
   })
   .strict();
 
@@ -22,8 +23,8 @@ export const createInterventionBodySchema = z
     pcId: z.coerce.number().int().positive().max(2_147_483_647),
     classId: z.coerce.number().int().positive().max(2_147_483_647),
     problemDescription: z.string().trim().min(1),
-    solution: optionalText,
-    externalTicketRef: optionalText,
+    solution: z.string().trim().min(1).nullable().optional(),
+    externalTicketRef: optionalText(100),
     pcUpdates: pcUpdatesSchema.optional(),
     newStatus: z.enum(['operational', 'in_maintenance', 'incident']).optional(),
   })

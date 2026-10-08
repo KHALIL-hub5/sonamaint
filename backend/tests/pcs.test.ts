@@ -220,6 +220,62 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
     expect(unknownOfficeResponse.body.error.code).toBe('OFFICE_NOT_FOUND');
   });
 
+  it('rejects PC creation values that exceed database column limits', async () => {
+    const invalidFields: Array<[string, string | number]> = [
+      ['assetTag', 'A'.repeat(31)],
+      ['model', 'M'.repeat(101)],
+      ['cpu', 'C'.repeat(101)],
+      ['gpu', 'G'.repeat(101)],
+      ['assignedUser', 'U'.repeat(101)],
+      ['osName', 'O'.repeat(51)],
+      ['osVersion', 'V'.repeat(51)],
+      ['ramGb', 4097],
+      ['storageGb', 100_001],
+    ];
+
+    for (const [field, value] of invalidFields) {
+      const body: Record<string, unknown> = {
+        assetTag: 'PC-LIMIT-TEST',
+        officeId: data.officeId,
+        cpu: 'Intel Core i7',
+        ramGb: 16,
+        storageType: 'SSD',
+        storageGb: 512,
+        osName: 'Windows',
+      };
+      body[field] = value;
+
+      const response = await request(app()).post('/api/pcs').send(body);
+
+      expect(response.status, field).toBe(400);
+      expect(response.body.error.code, field).toBe('VALIDATION_ERROR');
+    }
+  });
+
+  it('rejects PC patch values that exceed database column limits', async () => {
+    const pc = data.pcs.find((item) => item.assetTag === 'PC-DZ-01142');
+    expect(pc).toBeDefined();
+    const invalidFields: Array<[string, string | number]> = [
+      ['model', 'M'.repeat(101)],
+      ['cpu', 'C'.repeat(101)],
+      ['gpu', 'G'.repeat(101)],
+      ['assignedUser', 'U'.repeat(101)],
+      ['osName', 'O'.repeat(51)],
+      ['osVersion', 'V'.repeat(51)],
+      ['ramGb', 4097],
+      ['storageGb', 100_001],
+    ];
+
+    for (const [field, value] of invalidFields) {
+      const response = await request(app())
+        .patch(`/api/pcs/${pc?.id}`)
+        .send({ [field]: value });
+
+      expect(response.status, field).toBe(400);
+      expect(response.body.error.code, field).toBe('VALIDATION_ERROR');
+    }
+  });
+
   it('updates fields in a transaction and records the audit user and values', async () => {
     const pc = data.pcs.find((item) => item.assetTag === 'PC-DZ-01142');
     expect(pc).toBeDefined();

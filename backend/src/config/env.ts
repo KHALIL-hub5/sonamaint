@@ -8,6 +8,9 @@ const rawEnvSchema = z.object({
   DB_POOL_MAX: z.coerce.number().int().positive().max(100).default(10),
   DB_IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  ENABLE_DOCS: z.enum(['true', 'false']).optional(),
+  API_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1_000),
+  API_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(1_000),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
   UPLOAD_DIR: z.string().min(1).default('./uploads'),
   MAX_UPLOAD_MB: z.coerce.number().int().positive().max(1_024).default(10),
@@ -51,6 +54,12 @@ if (values.NODE_ENV === 'production' && values.AUTH_MODE === 'dev') {
   throw new Error('Invalid authentication configuration: AUTH_MODE=dev is not allowed in production');
 }
 
-export const env = values;
+export const env = {
+  ...values,
+  ENABLE_DOCS:
+    values.ENABLE_DOCS === undefined
+      ? values.NODE_ENV === 'development'
+      : values.ENABLE_DOCS === 'true',
+};
 
 export type Env = typeof env;

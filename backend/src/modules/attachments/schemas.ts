@@ -17,7 +17,7 @@ const captionsSchema = z
       return z.NEVER;
     }
 
-    const result = z.array(z.string()).safeParse(parsed);
+    const result = z.array(z.string().max(200)).safeParse(parsed);
     if (!result.success) {
       context.addIssue({ code: 'custom', message: 'captions must be a JSON array of strings' });
       return z.NEVER;

@@ -30,6 +30,51 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, nex
     return;
   }
 
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'type' in error &&
+    error.type === 'entity.parse.failed'
+  ) {
+    response.status(400).json({
+      error: {
+        code: 'INVALID_JSON',
+        message: 'Request body contains malformed JSON',
+      },
+    });
+    return;
+  }
+
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const postgresCode = error.code;
+    const postgresErrors: Record<string, { status: number; code: string; message: string }> = {
+      '23505': {
+        status: 409,
+        code: 'UNIQUE_VIOLATION',
+        message: 'A record with the provided value already exists',
+      },
+      '23503': {
+        status: 409,
+        code: 'FOREIGN_KEY_VIOLATION',
+        message: 'The request references a record that does not exist',
+      },
+      '23514': {
+        status: 400,
+        code: 'CHECK_VIOLATION',
+        message: 'The request violates a data constraint',
+      },
+    };
+
+    const mapped =
+      typeof postgresCode === 'string' ? postgresErrors[postgresCode] : undefined;
+    if (mapped) {
+      response.status(mapped.status).json({
+        error: { code: mapped.code, message: mapped.message },
+      });
+      return;
+    }
+  }
+
   response.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
