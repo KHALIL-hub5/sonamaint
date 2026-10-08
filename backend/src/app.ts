@@ -6,6 +6,10 @@ import { env } from './config/env.js';
 import { authenticate, createTokenVerifier } from './middleware/auth/index.js';
 import type { TokenVerifier } from './middleware/auth/types.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { buildingsRouter } from './modules/buildings/routes.js';
+import { interventionClassesRouter } from './modules/intervention-classes/routes.js';
+import { officesRouter } from './modules/offices/routes.js';
+import { pcsRouter } from './modules/pcs/routes.js';
 
 export function createApp(verifier: TokenVerifier = createTokenVerifier()) {
   const app = express();
@@ -20,6 +24,10 @@ export function createApp(verifier: TokenVerifier = createTokenVerifier()) {
   });
 
   app.use('/api', authenticate(verifier));
+  app.use('/api/buildings', buildingsRouter);
+  app.use('/api/offices', officesRouter);
+  app.use('/api/intervention-classes', interventionClassesRouter);
+  app.use('/api/pcs', pcsRouter);
 
   app.use(errorHandler);
 

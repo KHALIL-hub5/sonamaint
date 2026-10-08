@@ -39,6 +39,17 @@ npm run db:check
 
 `db:check` verifies that the seven schema tables are present in the database configured by `DATABASE_URL`.
 
+Reference-data integration tests use a dedicated PostgreSQL database whose name ends in `_test`. The safety guard requires `DATABASE_URL` and `TEST_DATABASE_URL` to point to the same `_test` database; the truncate helper refuses any other target. The development database must never be used for these tests.
+
+```powershell
+Copy-Item .env.test.example .env.test
+# Edit .env.test and replace the password placeholder with the test database password.
+# Passwords with special characters must be URL-encoded.
+npm test
+```
+
+The example sets `RUN_DB_TESTS=true`. If `.env.test` is absent, the database tests remain skipped and the test setup prints a message explaining how to configure them.
+
 ## Architecture
 
 Feature modules belong under `src/modules/<feature>/` and should contain `routes.ts`, `controller.ts`, `service.ts`, `repository.ts`, and `schemas.ts` as needed. Keep the dependency flow as routes → controller → service → repository; repositories are the only layer allowed to contain SQL.
