@@ -58,5 +58,63 @@ export const getRecentInterventionsQuerySchema = z
   })
   .strict();
 
+const interventionClassResponseSchema = z.object({
+  id: z.number().int(),
+  type: z.enum(['H', 'S']),
+  name: z.string(),
+});
+
+const interventionChangeResponseSchema = z.object({
+  fieldName: z.string(),
+  oldValue: z.string().nullable(),
+  newValue: z.string().nullable(),
+});
+
+export const pcInterventionPageResponseSchema = z.object({
+  items: z.array(z.object({
+    id: z.number().int(),
+    performedAt: z.string(),
+    performedByName: z.string().nullable(),
+    class: interventionClassResponseSchema,
+    problemSummary: z.string(),
+    attachmentCount: z.number().int(),
+  })),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+  total: z.number().int(),
+});
+
+export const interventionDetailResponseSchema = z.object({
+  id: z.number().int(),
+  pcId: z.number().int(),
+  assetTag: z.string(),
+  performedAt: z.string(),
+  performedByRef: z.string(),
+  performedByName: z.string().nullable(),
+  externalTicketRef: z.string().nullable(),
+  class: interventionClassResponseSchema,
+  problemDescription: z.string(),
+  solution: z.string().nullable(),
+  attachments: z.array(z.object({
+    id: z.number().int(),
+    caption: z.string().nullable(),
+    mimeType: z.string().nullable(),
+    url: z.string(),
+  })),
+  changes: z.array(interventionChangeResponseSchema),
+});
+
+export const recentInterventionsResponseSchema = z.array(z.object({
+  id: z.number().int(),
+  performedAt: z.string(),
+  performedByName: z.string().nullable(),
+  assetTag: z.string(),
+  officeCode: z.string(),
+  class: z.object({
+    type: z.enum(['H', 'S']),
+    name: z.string(),
+  }),
+}));
+
 export type CreateInterventionBody = z.infer<typeof createInterventionBodySchema>;
 export type ListPcInterventionsQuery = z.infer<typeof listPcInterventionsQuerySchema>;

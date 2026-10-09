@@ -16,8 +16,11 @@ const suiteTitle = runDatabaseTests
   ? 'PC endpoints'
   : 'PC endpoints (skipped: configure backend/.env.test from .env.test.example)';
 
-function app() {
-  return createApp(new DevTokenVerifier({ id: 'pc-editor' }));
+function app(name?: string) {
+  return createApp(new DevTokenVerifier({
+    id: 'pc-editor',
+    ...(name === undefined ? {} : { name }),
+  }));
 }
 
 describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
@@ -280,7 +283,7 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
     const pc = data.pcs.find((item) => item.assetTag === 'PC-DZ-01142');
     expect(pc).toBeDefined();
 
-    const response = await request(app())
+    const response = await request(app('PC Editor Name'))
       .patch(`/api/pcs/${pc?.id}`)
       .send({ cpu: '  Intel Core i9  ', ramGb: 32 });
 
@@ -297,6 +300,7 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
           oldValue: 'Intel Core i7',
           newValue: 'Intel Core i9',
           changedByRef: 'pc-editor',
+          changedByName: 'PC Editor Name',
           interventionId: null,
         }),
         expect.objectContaining({
@@ -304,10 +308,28 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
           oldValue: '16',
           newValue: '32',
           changedByRef: 'pc-editor',
+          changedByName: 'PC Editor Name',
           interventionId: null,
         }),
       ]),
     );
+  });
+
+  it('records a null audit name when the authenticated user has no name', async () => {
+    const pc = data.pcs.find((item) => item.assetTag === 'PC-DZ-01142');
+    expect(pc).toBeDefined();
+
+    const response = await request(app())
+      .patch(`/api/pcs/${pc?.id}`)
+      .send({ cpu: 'Updated without a user name' });
+    const history = await request(app()).get(`/api/pcs/${pc?.id}/history`);
+
+    expect(response.status).toBe(200);
+    expect(history.status).toBe(200);
+    expect(history.body.items[0]).toMatchObject({
+      changedByRef: 'pc-editor',
+      changedByName: null,
+    });
   });
 
   it('does not log fields whose values are unchanged', async () => {

@@ -26,8 +26,11 @@ const pngBytes = Buffer.from(
   'base64',
 );
 
-function app() {
-  return createApp(new DevTokenVerifier({ id: 'intervention-tech' }));
+function app(name?: string) {
+  return createApp(new DevTokenVerifier({
+    id: 'intervention-tech',
+    ...(name === undefined ? {} : { name }),
+  }));
 }
 
 async function insertIntervention(
@@ -99,9 +102,10 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
       old_value: string;
       new_value: string;
       changed_by_ref: string;
+      changed_by_name: string | null;
       intervention_id: number;
     }>(
-      `SELECT field_name, old_value, new_value, changed_by_ref, intervention_id
+      `SELECT field_name, old_value, new_value, changed_by_ref, changed_by_name, intervention_id
        FROM pc_change_log
        WHERE pc_id = $1`,
       [pc?.id],
@@ -112,9 +116,81 @@ describe.skipIf(!runDatabaseTests)(suiteTitle, () => {
         old_value: '8',
         new_value: '16',
         changed_by_ref: 'intervention-tech',
+        changed_by_name: null,
         intervention_id: response.body.id,
       },
     ]);
+  });
+
+  it('stores and returns the authenticated name, truncated to 150 characters', async () => {
+    const pc = data.pcs.find((item) => item.assetTag === 'PC-DZ-02');
+    const classId = referenceData.interventionClasses[0]?.id;
+    const name = 'N'.repeat(160);
+    const storedName = 'N'.repeat(150);
+    expect(pc).toBeDefined();
+    expect(classId).toBeDefined();
+
+    const created = await request(app(name))
+      .post('/api/interventions')
+      .send({
+        pcId: pc?.id,
+        classId,
+        problemDescription: 'Record intervention performer name',
+        pcUpdates: { ramGb: 16 },
+      });
+    expect(created.status).toBe(201);
+
+    const storedIntervention = await testPool.query<{ performed_by_name: string | null }>(
+      'SELECT performed_by_name FROM intervention WHERE id = $1',
+      [created.body.id],
+    );
+    expect(storedIntervention.rows[0]?.performed_by_name).toBe(storedName);
+
+    const detail = await request(app()).get(`/api/interventions/${created.body.id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.performedByName).toBe(storedName);
+
+    const pcInterventions = await request(app()).get(
+      `/api/pcs/${pc?.id}/interventions?pageSize=1`,
+    );
+    expect(pcInterventions.status).toBe(200);
+    expect(pcInterventions.body.items[0].performedByName).toBe(storedName);
+
+    const recent = await request(app()).get('/api/interventions/recent?limit=1');
+    expect(recent.status).toBe(200);
+    expect(recent.body[0].performedByName).toBe(storedName);
+
+    const history = await request(app()).get(`/api/pcs/${pc?.id}/history`);
+    expect(history.status).toBe(200);
+    expect(history.body.items[0].changedByName).toBe(storedName);
+  });
+
+  it('uses null names when the authenticated user has no name', async () => {
+    const pc = data.pcs.find((item) => item.assetTag === 'PC-DZ-02');
+    const classId = referenceData.interventionClasses[0]?.id;
+    expect(pc).toBeDefined();
+    expect(classId).toBeDefined();
+
+    const created = await request(app())
+      .post('/api/interventions')
+      .send({
+        pcId: pc?.id,
+        classId,
+        problemDescription: 'Record intervention without a user name',
+        pcUpdates: { ramGb: 16 },
+      });
+    expect(created.status).toBe(201);
+
+    const detail = await request(app()).get(`/api/interventions/${created.body.id}`);
+    const list = await request(app()).get(`/api/pcs/${pc?.id}/interventions?pageSize=1`);
+    const history = await request(app()).get(`/api/pcs/${pc?.id}/history`);
+
+    expect(detail.status).toBe(200);
+    expect(detail.body.performedByName).toBeNull();
+    expect(list.status).toBe(200);
+    expect(list.body.items[0].performedByName).toBeNull();
+    expect(history.status).toBe(200);
+    expect(history.body.items[0].changedByName).toBeNull();
   });
 
   it('logs a new PC status as an intervention change', async () => {

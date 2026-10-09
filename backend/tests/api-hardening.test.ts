@@ -33,6 +33,16 @@ describe('API hardening', () => {
     );
     expect(openApiDocument.components?.securitySchemes).toHaveProperty('BearerAuth');
     expect(openApiDocument.paths['/api/pcs']?.get?.parameters).toBeDefined();
+    const historySchema = openApiDocument.paths['/api/pcs/{id}/history']?.get?.responses?.[
+      '200'
+    ]?.content?.['application/json']?.schema;
+    const detailSchema = openApiDocument.paths['/api/interventions/{id}']?.get?.responses?.[
+      '200'
+    ]?.content?.['application/json']?.schema;
+    expect(historySchema).toHaveProperty(
+      'properties.items.items.properties.changedByName',
+    );
+    expect(detailSchema).toHaveProperty('properties.performedByName');
   });
 
   it('serves Swagger UI when documentation is enabled', async () => {

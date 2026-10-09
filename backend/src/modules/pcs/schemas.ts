@@ -62,6 +62,22 @@ export const getPcHistoryQuerySchema = z
   })
   .strict();
 
+export const pcHistoryPageResponseSchema = z.object({
+  items: z.array(z.object({
+    id: z.number().int(),
+    fieldName: z.string(),
+    oldValue: z.string().nullable(),
+    newValue: z.string().nullable(),
+    changedAt: z.string(),
+    changedByRef: z.string().nullable(),
+    changedByName: z.string().nullable(),
+    interventionId: z.number().int().nullable(),
+  })),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+  total: z.number().int(),
+});
+
 export type ListPcsQuery = z.infer<typeof listPcsQuerySchema>;
 export type CreatePcBody = z.infer<typeof createPcBodySchema>;
 export type UpdatePcBody = z.infer<typeof updatePcBodySchema>;

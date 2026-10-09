@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 
 export interface AuditContext {
   userRef: string;
+  userName?: string;
   interventionId?: number | string;
 }
 
@@ -14,7 +15,11 @@ export async function setAuditContext(
   context: AuditContext,
 ): Promise<void> {
   await client.query(
-    "SELECT set_config('sonamaint.user_ref', $1, true), set_config('sonamaint.intervention_id', $2, true)",
-    [context.userRef, context.interventionId?.toString() ?? ''],
+    "SELECT set_config('sonamaint.user_ref', $1, true), set_config('sonamaint.user_name', $2, true), set_config('sonamaint.intervention_id', $3, true)",
+    [
+      context.userRef,
+      context.userName?.slice(0, 150) ?? '',
+      context.interventionId?.toString() ?? '',
+    ],
   );
 }

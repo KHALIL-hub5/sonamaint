@@ -41,7 +41,7 @@ export async function updatePc(request: Request, response: Response): Promise<vo
     throw new AppError(401, 'UNAUTHENTICATED', 'Authentication is required');
   }
 
-  const pc = await updatePcService(id, body, userId);
+  const pc = await updatePcService(id, body, userId, request.user?.name);
   response.status(200).json(pc);
 }
 

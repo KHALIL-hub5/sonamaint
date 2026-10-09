@@ -12,14 +12,18 @@ import {
   createInterventionBodySchema,
   getInterventionParamsSchema,
   getRecentInterventionsQuerySchema,
+  interventionDetailResponseSchema,
   listPcInterventionsParamsSchema,
   listPcInterventionsQuerySchema,
+  pcInterventionPageResponseSchema,
+  recentInterventionsResponseSchema,
 } from './modules/interventions/schemas.js';
 import {
   createPcBodySchema,
   getPcHistoryQuerySchema,
   getPcParamsSchema,
   listPcsQuerySchema,
+  pcHistoryPageResponseSchema,
   updatePcBodySchema,
 } from './modules/pcs/schemas.js';
 
@@ -29,6 +33,13 @@ const registry = new OpenAPIRegistry();
 
 const success = (description: string, status = 200) => ({
   [status]: { description },
+});
+
+const jsonResponse = (description: string, schema: z.ZodType, status = 200) => ({
+  [status]: {
+    description,
+    content: { 'application/json': { schema } },
+  },
 });
 
 registry.registerPath({
@@ -124,7 +135,7 @@ registry.registerPath({
   tags: ['PCs'],
   summary: 'Get PC change history',
   request: { params: getPcParamsSchema, query: getPcHistoryQuerySchema },
-  responses: success('Paginated PC change history'),
+  responses: jsonResponse('Paginated PC change history', pcHistoryPageResponseSchema),
 });
 
 registry.registerPath({
@@ -136,7 +147,7 @@ registry.registerPath({
     params: listPcInterventionsParamsSchema,
     query: listPcInterventionsQuerySchema,
   },
-  responses: success('Paginated PC interventions'),
+  responses: jsonResponse('Paginated PC interventions', pcInterventionPageResponseSchema),
 });
 
 registry.registerPath({
@@ -158,7 +169,7 @@ registry.registerPath({
   tags: ['Interventions'],
   summary: 'List recent interventions',
   request: { query: getRecentInterventionsQuerySchema },
-  responses: success('Recent intervention feed'),
+  responses: jsonResponse('Recent intervention feed', recentInterventionsResponseSchema),
 });
 
 registry.registerPath({
@@ -167,7 +178,7 @@ registry.registerPath({
   tags: ['Interventions'],
   summary: 'Get an intervention',
   request: { params: getInterventionParamsSchema },
-  responses: success('Intervention details'),
+  responses: jsonResponse('Intervention details', interventionDetailResponseSchema),
 });
 
 registry.registerPath({

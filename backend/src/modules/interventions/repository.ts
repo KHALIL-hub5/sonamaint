@@ -33,6 +33,7 @@ export interface CreatedIntervention {
 interface PcInterventionRow {
   id: number;
   performed_at: Date;
+  performed_by_name: string | null;
   class_id: number;
   class_type: 'H' | 'S';
   class_name: string;
@@ -46,6 +47,7 @@ interface InterventionDetailRow {
   asset_tag: string;
   performed_at: Date;
   performed_by_ref: string;
+  performed_by_name: string | null;
   external_ticket_ref: string | null;
   class_id: number;
   class_type: 'H' | 'S';
@@ -63,6 +65,7 @@ interface AttachmentRow {
 interface RecentInterventionRow {
   id: number;
   performed_at: Date;
+  performed_by_name: string | null;
   asset_tag: string;
   office_code: string;
   class_type: 'H' | 'S';
@@ -72,6 +75,7 @@ interface RecentInterventionRow {
 export interface PcInterventionItem {
   id: number;
   performedAt: string;
+  performedByName: string | null;
   class: { id: number; type: 'H' | 'S'; name: string };
   problemSummary: string;
   attachmentCount: number;
@@ -90,6 +94,7 @@ export interface InterventionDetail {
   assetTag: string;
   performedAt: string;
   performedByRef: string;
+  performedByName: string | null;
   externalTicketRef: string | null;
   class: { id: number; type: 'H' | 'S'; name: string };
   problemDescription: string;
@@ -106,6 +111,7 @@ export interface InterventionDetail {
 export interface RecentIntervention {
   id: number;
   performedAt: string;
+  performedByName: string | null;
   assetTag: string;
   officeCode: string;
   class: { type: 'H' | 'S'; name: string };
@@ -153,6 +159,7 @@ export async function findPcInterventions(
   const pageResult = await pool.query<PcInterventionRow>(
     `SELECT i.id,
             i.performed_at,
+            i.performed_by_name,
             ic.id AS class_id,
             ic.type AS class_type,
             ic.name AS class_name,
@@ -175,6 +182,7 @@ export async function findPcInterventions(
     items: pageResult.rows.map((row) => ({
       id: row.id,
       performedAt: row.performed_at.toISOString(),
+      performedByName: row.performed_by_name,
       class: { id: row.class_id, type: row.class_type, name: row.class_name },
       problemSummary: row.problem_summary,
       attachmentCount: row.attachment_count,
@@ -194,6 +202,7 @@ export async function findInterventionById(
             p.asset_tag,
             i.performed_at,
             i.performed_by_ref,
+            i.performed_by_name,
             i.external_ticket_ref,
             ic.id AS class_id,
             ic.type AS class_type,
@@ -234,6 +243,7 @@ export async function findInterventionById(
     assetTag: row.asset_tag,
     performedAt: row.performed_at.toISOString(),
     performedByRef: row.performed_by_ref,
+    performedByName: row.performed_by_name,
     externalTicketRef: row.external_ticket_ref,
     class: { id: row.class_id, type: row.class_type, name: row.class_name },
     problemDescription: row.problem_description,
@@ -252,6 +262,7 @@ export async function findRecentInterventions(limit: number): Promise<RecentInte
   const result = await pool.query<RecentInterventionRow>(
     `SELECT i.id,
             i.performed_at,
+            i.performed_by_name,
             p.asset_tag,
             o.code AS office_code,
             ic.type AS class_type,
@@ -268,6 +279,7 @@ export async function findRecentInterventions(limit: number): Promise<RecentInte
   return result.rows.map((row) => ({
     id: row.id,
     performedAt: row.performed_at.toISOString(),
+    performedByName: row.performed_by_name,
     assetTag: row.asset_tag,
     officeCode: row.office_code,
     class: { type: row.class_type, name: row.class_name },
@@ -299,22 +311,25 @@ export async function insertIntervention(
   client: PoolClient,
   body: CreateInterventionBody,
   performedByRef: string,
+  performedByName?: string,
 ): Promise<InterventionRow | null> {
   const result = await client.query<InterventionRow>(
     `INSERT INTO intervention (
        pc_id,
        class_id,
        performed_by_ref,
+       performed_by_name,
        problem_description,
        solution,
        external_ticket_ref
      )
-     VALUES ($1, $2, $3, $4, $5, $6)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id, pc_id, class_id, performed_at`,
     [
       body.pcId,
       body.classId,
       performedByRef,
+      performedByName?.slice(0, 150) ?? null,
       body.problemDescription,
       body.solution ?? null,
       body.externalTicketRef ?? null,

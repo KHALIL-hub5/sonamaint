@@ -24,6 +24,7 @@ import type {
 export async function createIntervention(
   body: CreateInterventionBody,
   performedByRef: string,
+  performedByName?: string,
 ): Promise<CreatedIntervention> {
   return withTransaction(async (client) => {
     if (!(await pcExists(client, body.pcId))) {
@@ -43,13 +44,19 @@ export async function createIntervention(
       throw new AppError(400, 'OFFICE_NOT_FOUND', 'The specified office does not exist');
     }
 
-    const intervention = await insertIntervention(client, body, performedByRef);
+    const intervention = await insertIntervention(
+      client,
+      body,
+      performedByRef,
+      performedByName,
+    );
     if (!intervention) {
       throw new Error('The intervention insert completed without returning an intervention');
     }
 
     await setAuditContext(client, {
       userRef: performedByRef,
+      ...(performedByName === undefined ? {} : { userName: performedByName }),
       interventionId: intervention.id,
     });
     await updatePcForIntervention(client, body.pcId, body);

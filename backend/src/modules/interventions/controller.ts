@@ -24,7 +24,7 @@ export async function postIntervention(
     throw new AppError(401, 'UNAUTHENTICATED', 'Authentication is required');
   }
 
-  const intervention = await createIntervention(body, userId);
+  const intervention = await createIntervention(body, userId, request.user?.name);
   response.status(201).json(intervention);
 }
 

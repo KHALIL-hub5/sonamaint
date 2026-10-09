@@ -66,9 +66,13 @@ export async function updatePc(
   id: number,
   body: UpdatePcBody,
   changedByRef: string,
+  changedByName?: string,
 ): Promise<Pc> {
   return withTransaction(async (client) => {
-    await setAuditContext(client, { userRef: changedByRef });
+    await setAuditContext(client, {
+      userRef: changedByRef,
+      ...(changedByName === undefined ? {} : { userName: changedByName }),
+    });
 
     if (!(await pcExists(client, id))) {
       throw new AppError(404, 'PC_NOT_FOUND', `PC with id ${id} was not found`);

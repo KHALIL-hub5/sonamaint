@@ -38,6 +38,7 @@ interface PcHistoryRow {
   new_value: string | null;
   changed_at: Date;
   changed_by_ref: string | null;
+  changed_by_name: string | null;
   intervention_id: number | null;
 }
 
@@ -48,6 +49,7 @@ interface PcHistoryItem {
   newValue: string | null;
   changedAt: string;
   changedByRef: string | null;
+  changedByName: string | null;
   interventionId: number | null;
 }
 
@@ -323,7 +325,8 @@ export async function findPcHistory(
 ): Promise<PcHistoryPage> {
   const [rowsResult, countResult] = await Promise.all([
     pool.query<PcHistoryRow>(
-      `SELECT id, field_name, old_value, new_value, changed_at, changed_by_ref, intervention_id
+      `SELECT id, field_name, old_value, new_value, changed_at, changed_by_ref,
+              changed_by_name, intervention_id
        FROM pc_change_log
        WHERE pc_id = $1
        ORDER BY changed_at DESC, id DESC
@@ -347,6 +350,7 @@ export async function findPcHistory(
       newValue: row.new_value,
       changedAt: row.changed_at.toISOString(),
       changedByRef: row.changed_by_ref,
+      changedByName: row.changed_by_name,
       interventionId: row.intervention_id,
     })),
     page: query.page,
